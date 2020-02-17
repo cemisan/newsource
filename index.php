@@ -11,6 +11,7 @@
 <link rel="stylesheet" href="css/bootstrap.min.css">
 <link rel="stylesheet" href="css/google.api.css" >
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/modal.css">
 </head>
 <body>
 
@@ -63,41 +64,23 @@
 
 <!-- The Modal -->
 <div id="myModal" class="modal">
-
+<div class="modal-dialog">
   <!-- Modal content -->
   <div class="modal-content">
     <div class="modal-header">
-      <span class="close">&times;</span>
-      <h2>Machine Info</h2>
+      <h4 class="modal-title">Modal title</h4>
+      <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+          <span aria-hidden="true">&times;</span>
+        </button>
     </div>
     <div class="modal-body">
-      <p>Some extra infomation here</p>
+      ...
     </div>
     <div class="modal-footer">
-      <h3>Footer</h3>
+      ...
     </div>
   </div>
-
 </div>
-
-<div class="container">
-  <!-- Modal -->
-  <div class="modal fade" id="myModall" role="dialog">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <button type="button" class="close" data-dismiss="modal">&times;</button>
-          <h4 class="modal-title">Modal Header</h4>
-        </div>
-        <div class="modal-body">
-          <p>This is a large modal.</p>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-default" data-dismiss="modal">Close</button>
-        </div>
-      </div>
-    </div>
-  </div>
 </div>
 
 <!-- Footer -->
@@ -165,7 +148,7 @@ function empty(elementId) {
 }
 
 function updateTable() {
-  //AJAX
+  // Full vanila AJAX for reference
   var xmlhttp =  new XMLHttpRequest();
   xmlhttp.onreadystatechange = function() {
     if (this.readyState == 4 && this.status == 200) {
@@ -173,18 +156,17 @@ function updateTable() {
       var myObj = JSON.parse(this.responseText);
       var i;
       for (i = 0; i < Object.keys(myObj).length; i++) {
-        var innerTb = '<tr>'+
-                       '<td>'+myObj[i].no+'</td>'+
-                       '<td><a href="#" onclick= \'show_modal('+JSON.stringify(myObj[i])+')\'>'+myObj[i].MC_name+'</a></td>'+
-                       '<td>'+myObj[i].target+'</td>'+
-                       '<td>'+myObj[i].plan+'</td>'+
-                       '<td>'+myObj[i].pcs+'</td>'+
-                       '<td>'+myObj[i].diff+'</td>'+
-                       getStat(myObj,i)+
-                     '</tr>';
-        //console.log(getStat(myObj,i));
+        var innerTb =
+          '<tr>'+
+            '<td>'+myObj[i].no+'</td>'+
+            '<td><a href="#" onclick= \'show_modal('+JSON.stringify(myObj[i])+')\'>'+myObj[i].MC_name+'</a></td>'+
+            '<td>'+myObj[i].target+'</td>'+
+            '<td>'+myObj[i].plan+'</td>'+
+            '<td>'+myObj[i].pcs+'</td>'+
+            '<td>'+myObj[i].diff+'</td>'+
+            getStat(myObj,i)+
+          '</tr>';
 
-        //$('#myTable > tbody:last').append(innerTb);
         document.getElementById('ggwp').insertAdjacentHTML('beforeend', innerTb);
 
       } //end for
@@ -206,10 +188,92 @@ var modal = document.getElementById("myModal");
 var span = document.getElementsByClassName("close")[0];
 
 function show_modal(p) {
+  //clearInterval(timer);
   modal.style.display = "block";
-  $('#myModal .modal-content .modal-header h2').empty();
-  $('#myModal .modal-content .modal-header h2').append(p.machinename+' info');
-  clearInterval(timer);
+  $('#myModal .modal-title').html('<strong>'+p.MC_name+'</strong> info');
+  var obj = JSON.parse(p.scheduling);
+  obj = Array.isArray(obj)? obj : [obj];
+  //$('#myModal .modal-body').append(p.scheduling);
+  var process_time = p.ct*p.target;//min
+  //findStart(obj);
+  console.log('expected to be an array: '+obj);
+  var final_time = finalTimeCal(process_time, p.target, obj);
+  console.log(final_time.time);
+  $('#myModal .modal-body').html("<strong>Status:</strong> "+final_time.status+ " <strong>Time require/finished:</strong> " + final_time.time[0] + ":" + final_time.time[1]);
+}
+
+// input must be an array []
+function findStart(obj) {
+  // expected to be time of each day e.g. 0.31, 12.21, 23.59
+  var start_time_ref = [0,0];
+  var i;
+  for (i = 0; i < obj.length; i++) {
+    if (obj[i].state == 'start' || obj[i].state == 'resume') {
+      start_time_ref[0] = obj[i].timeHr;
+      start_time_ref[1] = obj[i].timeMin;
+      console.log('start found!');
+      return {'flag':1, 'idx':i, 'start_time_ref':start_time_ref, 'len':obj.length};
+      break;
+    }
+  }
+  return {'flag':0, 'idx':i, 'start_time_ref':[0,0], 'len':obj.length};
+}
+
+function finalTimeCal(pt, target, obj) {
+  // obj has more than one row
+  if (!Array.isArray(obj)) {
+    console.log('shit');
+    return null;
+  }
+  var o = findStart(obj);
+
+
+  var remain_pt = Number(pt); // min
+  var flag = o.flag;
+  var time_ref = o.start_time_ref;
+  console.log('pt: '+pt+' mins')
+  // if all pass
+  var i;
+  for (i = o.idx; i<o.len; i++) {
+    if ((obj[i].state == 'stop' && flag == 1) || (obj[i].state == 'pause' && flag == 1)) {
+      console.log('stop');
+      //var on_time = [time_ref[0] - obj.[$i].timeHr, time_ref[1] - obj.[$i].timeMin];
+      var on_time = hr2min([obj[i].timeHr, obj[i].timeMin]) - hr2min(time_ref);
+      console.log('timeHr: '+obj[i].timeHr);
+      console.log('timeMin: '+obj[i].timeMin);
+      console.log('time_ref: '+hr2min(time_ref)+' mins');
+      console.log('current_time: '+hr2min([obj[i].timeHr, obj[i].timeMin])+' mins');
+      remain_pt = remain_pt - on_time; //min
+      console.log('remain_pt: '+remain_pt+' mins');
+      if (remain_pt <= 0) {
+        console.log('in if');
+        return {'status':'completed','time':normalize(time_ref, on_time + remain_pt)};
+      }
+      // New time_ref (current time)
+      time_ref = normalize(time_ref, on_time);
+      flag = 0;
+    } else if ((obj[i].state == 'start' && flag == 0) || (obj[i].state == 'resume' && flag == 0)) {
+      console.log('start');
+      var off_time = time_ref - obj[i].timeMH;
+      var off_time = hr2min([obj[i].timeHr, obj[i].timeMin]) - hr2min(time_ref);
+      time_ref = normalize(time_ref, off_time);
+      flag = 1;
+    }
+  }
+  return {'status':'incomplete', 'time':min2time(remain_pt)};
+}
+
+function normalize(time_ref, min) {
+  var time_t = hr2min(time_ref) + Number(min);
+  return min2time(time_t);
+}
+
+function hr2min(time) {
+  return time[0]*60 + Number(time[1]);
+}
+
+function min2time(time) {
+  return [Math.floor(time/60), time%60];
 }
 
 span.onclick = function() {

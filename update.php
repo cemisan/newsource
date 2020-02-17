@@ -119,34 +119,7 @@ select {
         echo 'saved!';
       }
     }
-		
-		if(isset($_REQUEST['MC_name'])){
-			$MC_name = stripslashes($_REQUEST['MC_name']);
-			$MC_name = mysqli_real_escape_string($con, $MC_name);
-			$sec = stripslashes($_REQUEST['sec']);
-			$sec = mysqli_real_escape_string($con, $sec);
-			$msec = stripslashes($_REQUEST['msec']);
-			$msec = mysqli_real_escape_string($con, $msec);
-			$target = stripslashes($_REQUEST['target']);
-			$target = mysqli_real_escape_string($con, $target);
-			$CT = "$sec.$msec";
-			
-			$query = "UPDATE main_table SET target = '$target', ct = '$CT' WHERE MC_name = '$MC_name'";
-			$result = mysqli_query($con, $query);
-			
-			if($result){
-				echo "<div class='container'>
-				 <h3>Successfully</h3>
-				 <br>Click here to <a href='index.php'>Home</a>
-				</div>";
-        echo $_POST['test'];
-			} else {
-				echo "<div class='container'>
-					 <h3>Error</h3>
-					 <br>Click here to <a href='index.php'>Home</a>
-					</div>";
-				}
-		} else {
+
 	?>
 
 <!-- Main content -->
@@ -209,7 +182,7 @@ for ($i = 10 ; $i < 100 ; $i++){echo "               <option value=".$i.">".$i."
     <!-- panel heading2 -->
     <div class="panel-heading"><a href="#" onclick="addBreak()" class="glyphicon glyphicon-plus" id="add_interval"></a> Break time itervals in each day</div>
     <div class="panel-body" id ="breaktime_panel_container">
-        <div class="input-group hpy">
+        <div class="input-group hpg">
           <span class="input-group-addon">@</span>
           <select class="form-control form-control-sm" name="timeHr" onchange="autosave2()">
             <option value="0">00</option>
@@ -314,9 +287,9 @@ for ($i = 10 ; $i < 100 ; $i++){echo "               <option value=".$i.">".$i."
           </select>
           <span class="input-group-addon inbetween"><span class="glyphicon glyphicon-time"></span></span>
           <select class="form-control form-control-sm state" name="state" onchange="recolor($(this))">
+            <option value ="start">START</option>
             <option value ="pause">PAUSE</option>
             <option value ="resume">RESUME</option>
-            <option value ="start">START</option>
             <option value ="stop">STOP</option>
           </select>
           <span class="input-group-addon"><a href="#" class="glyphicon glyphicon-minus" onclick="removeBreak($(this))"></a></span>
@@ -326,10 +299,6 @@ for ($i = 10 ; $i < 100 ; $i++){echo "               <option value=".$i.">".$i."
   </div> <!-- main panel -->
   </form>
 </div> <!-- container -->
-
-<?php
-	
-}?>
 
 <!-- Footer -->
 <footer class="footer container-fluid bg-4 text-center">
@@ -349,6 +318,21 @@ var divtmp = '';
 $(document).ready(function(){
   divtmp = $('#breaktime_panel_container').html();
   $('#breaktime_panel_container').children().remove();
+});
+
+// Load page ajax
+$(document).ready(function(){
+  $.get("mec_stat_parser.php", function(data, status){
+    if (status == 'success') {
+      //alert("\nStatus: " + status);
+      JSON.parse(data).forEach(load_machine_name);
+      load_info();
+    } else {
+      alert("\nStatus: " + status);
+    }
+  });
+
+  $("#MC_name").change(load_info);    
 });
 
 function recolor(el) { //this = select
@@ -378,42 +362,7 @@ function recolor(el) { //this = select
 }
 
 function addBreak() {
-  //var el_tmp = $("#breaktime_panel_container div:last-child").clone(true);
-  //console.log(el_tmp.html());
-  //switch(el.find('select:last-child').val()) {
-  //  case 'pause':
-  //    el.find('select:last-child option:selected').removeAttr("selected");
-  //    el.find('select:last-child option[value="resume"]').attr('selected', 'selected');
-  //    el.find('select:last-child').parent().removeClass('hpy hpr hpg').addClass('hpg');
-  //    break;
-  //  case 'resume':
-  //    el.find('select:last-child option:selected').removeAttr("selected");
-  //    el.find('select:last-child option[value="pause"]').attr('selected', 'selected');
-  //    el.find('select:last-child').parent().removeClass('hpy hpr hpg').addClass('hpy');
-  //
-  //    break;
-  //  case 'start':
-  //    el.find('select:last-child option:selected').removeAttr("selected");
-  //    el.find('select:last-child option[value="stop"]').attr('selected', 'selected');
-  //    el.find('select:last-child').parent().removeClass('hpy hpr hpg').addClass('hpr');
-  //    break;
-  //  case 'stop':
-  //    el.find('select:last-child option:selected').removeAttr("selected");
-  //    el.find('select:last-child option[value="start"]').attr('selected', 'selected');
-  //    el.find('select:last-child').parent().removeClass('hpy hpr hpg').addClass('hpg')
-  //    break;
-  //  default:
-  //    console.log('default')
-  //    el.find('select:last-child option:selected').removeAttr("selected");
-  //    el.find('select:last-child option[value="pause"]').attr('selected', 'selected');
-  //    el.find('select:last-child').parent().removeClass('hpy hpr hpg').addClass('hpy');
-  //
-  //}
-  
   $('#breaktime_panel_container').append(divtmp);
-
-  // save changes
-  //console.log(divtmp.html());
   autosave2();
 }
 
@@ -455,21 +404,6 @@ $.fn.serializeObject = function() {
     return o;
 }
 
-// Load page ajax
-$(document).ready(function(){
-  $.get("mec_stat_parser.php", function(data, status){
-    if (status == 'success') {
-      //alert("\nStatus: " + status);
-      JSON.parse(data).forEach(load_machine_name);
-      load_info();
-    } else {
-      alert("\nStatus: " + status);
-    }
-  });
-
-  $("#MC_name").change(load_info);    
-});
-
 function load_machine_name(item, index){
   var opt = document.createElement("option");
   opt.innerHTML = item.MC_name;
@@ -479,6 +413,7 @@ function load_machine_name(item, index){
 
 function load_info() {
   var id = $("#MC_name").val();
+  $('#breaktime_panel_container').children().remove();
   //console.log(id)
   $.get("mec_stat_parser.php?id="+id, function(data, status){
     if (status == 'success') {
@@ -489,12 +424,11 @@ function load_info() {
         $('#target').val(item.target);
         var sch = JSON.parse(item.scheduling);
         if (sch == null || sch == '' || item.scheduling == '{"timeHr":null,"timeMin":null,"state":null}') {
-          $('#breaktime_panel_container').children().remove();
+          //do nothing
         } else if (Array.isArray(sch)) {
           //console.log(sch);
-          $('#breaktime_panel_container').children().remove();
+          
           sch.forEach(function(it,idx){
-
             var div = $(divtmp);
             div.find('select[name=timeHr]').val(it.timeHr);
             div.find('select[name=timeMin]').val(it.timeMin);
@@ -503,7 +437,12 @@ function load_info() {
             $('#breaktime_panel_container').append(div);
           });
         } else {
-            $('#breaktime_panel_container').append(divtmp);
+            var div = $(divtmp);
+            div.find('select[name=timeHr]').val(sch.timeHr);
+            div.find('select[name=timeMin]').val(sch.timeMin);
+            div.find('select[name=state]').val(sch.state);
+            div.removeClass('hpy hpr hpg').addClass(setClass(sch.state));
+            $('#breaktime_panel_container').append(div);
         }
       });
     } else {
