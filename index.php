@@ -196,9 +196,9 @@ function show_modal(p) {
   //$('#myModal .modal-body').append(p.scheduling);
   var process_time = p.ct*p.target;//min
   //findStart(obj);
-  console.log('expected to be an array: '+obj);
+  //onsole.log('expected to be an array: '+obj);
   var final_time = finalTimeCal(process_time, p.target, obj);
-  console.log(final_time.time);
+  //console.log(final_time.time);
   $('#myModal .modal-body').html("<strong>Status:</strong> "+final_time.status+ " <strong>Time require/finished:</strong> " + final_time.time[0] + ":" + final_time.time[1]);
 }
 
@@ -211,7 +211,7 @@ function findStart(obj) {
     if (obj[i].state == 'start' || obj[i].state == 'resume') {
       start_time_ref[0] = obj[i].timeHr;
       start_time_ref[1] = obj[i].timeMin;
-      console.log('start found!');
+      //console.log('start found!');
       return {'flag':1, 'idx':i, 'start_time_ref':start_time_ref, 'len':obj.length};
       break;
     }
@@ -222,7 +222,7 @@ function findStart(obj) {
 function finalTimeCal(pt, target, obj) {
   // obj has more than one row
   if (!Array.isArray(obj)) {
-    console.log('shit');
+    //console.log('shit');
     return null;
   }
   var o = findStart(obj);
@@ -231,29 +231,29 @@ function finalTimeCal(pt, target, obj) {
   var remain_pt = Number(pt); // min
   var flag = o.flag;
   var time_ref = o.start_time_ref;
-  console.log('pt: '+pt+' mins')
+  //console.log('pt: '+pt+' mins')
   // if all pass
   var i;
   for (i = o.idx; i<o.len; i++) {
     if ((obj[i].state == 'stop' && flag == 1) || (obj[i].state == 'pause' && flag == 1)) {
-      console.log('stop');
+      //console.log('stop');
       //var on_time = [time_ref[0] - obj.[$i].timeHr, time_ref[1] - obj.[$i].timeMin];
       var on_time = hr2min([obj[i].timeHr, obj[i].timeMin]) - hr2min(time_ref);
-      console.log('timeHr: '+obj[i].timeHr);
-      console.log('timeMin: '+obj[i].timeMin);
-      console.log('time_ref: '+hr2min(time_ref)+' mins');
-      console.log('current_time: '+hr2min([obj[i].timeHr, obj[i].timeMin])+' mins');
+      //console.log('timeHr: '+obj[i].timeHr);
+      //console.log('timeMin: '+obj[i].timeMin);
+      //console.log('time_ref: '+hr2min(time_ref)+' mins');
+      //console.log('current_time: '+hr2min([obj[i].timeHr, obj[i].timeMin])+' mins');
       remain_pt = remain_pt - on_time; //min
-      console.log('remain_pt: '+remain_pt+' mins');
+      //console.log('remain_pt: '+remain_pt+' mins');
       if (remain_pt <= 0) {
-        console.log('in if');
+        //console.log('in if');
         return {'status':'completed','time':normalize(time_ref, on_time + remain_pt)};
       }
       // New time_ref (current time)
       time_ref = normalize(time_ref, on_time);
       flag = 0;
     } else if ((obj[i].state == 'start' && flag == 0) || (obj[i].state == 'resume' && flag == 0)) {
-      console.log('start');
+      //console.log('start');
       var off_time = time_ref - obj[i].timeMH;
       var off_time = hr2min([obj[i].timeHr, obj[i].timeMin]) - hr2min(time_ref);
       time_ref = normalize(time_ref, off_time);
